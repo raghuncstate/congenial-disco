@@ -1,0 +1,27 @@
+diff --git a/plat/hikey/hikey_def.h b/plat/hikey/hikey_def.h
+index 2007633..a651890 100644
+--- a/plat/hikey/hikey_def.h
++++ b/plat/hikey/hikey_def.h
+@@ -80,6 +80,7 @@
+  * PL011 related constants
+  ******************************************************************************/
+ #define PL011_UART0_BASE		0xF8015000
++#define PL011_UART2_BASE		0xF7112000
+ #define PL011_UART3_BASE		0xF7113000
+ 
+ #define PL011_BAUDRATE			115200
+diff --git a/plat/hikey/platform.mk b/plat/hikey/platform.mk
+index f13854b..e9a8e9b 100644
+--- a/plat/hikey/platform.mk
++++ b/plat/hikey/platform.mk
+@@ -29,8 +29,8 @@
+ # POSSIBILITY OF SUCH DAMAGE.
+ #
+ 
+-CONSOLE_BASE		:=	PL011_UART3_BASE
+-CRASH_CONSOLE_BASE	:=	PL011_UART3_BASE
++CONSOLE_BASE		:=	PL011_UART2_BASE
++CRASH_CONSOLE_BASE	:=	PL011_UART2_BASE
+ 
+ # Process flags
+ $(eval $(call add_define,CONSOLE_BASE))

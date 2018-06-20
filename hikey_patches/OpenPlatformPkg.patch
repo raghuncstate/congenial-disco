@@ -1,0 +1,41 @@
+diff --git a/Platforms/Hisilicon/DeviceTree/hi6220-hikey.dtb b/Platforms/Hisilicon/DeviceTree/hi6220-hikey.dtb
+index 8e0872f..43c3802 100644
+Binary files a/Platforms/Hisilicon/DeviceTree/hi6220-hikey.dtb and b/Platforms/Hisilicon/DeviceTree/hi6220-hikey.dtb differ
+diff --git a/Platforms/Hisilicon/DeviceTree/hi6220-hikey.dts b/Platforms/Hisilicon/DeviceTree/hi6220-hikey.dts
+index e94fa1a..6dbbb1f 100644
+--- a/Platforms/Hisilicon/DeviceTree/hi6220-hikey.dts
++++ b/Platforms/Hisilicon/DeviceTree/hi6220-hikey.dts
+@@ -23,7 +23,7 @@
+ 	};
+ 
+ 	chosen {
+-		stdout-path = "serial3:115200n8";
++		stdout-path = "serial2:115200n8";
+ 	};
+ 
+ 	/*
+@@ -124,6 +124,11 @@
+ 	soc {
+ 		spi0: spi@f7106000 {
+ 			status = "ok";
++			tpm_tis_spi@0 {
++                            compatible = "tcg,tpm_tis-spi";
++                            spi-max-frequency = <5000000>;
++                            reg = <0>;
++                        };
+ 		};
+ 
+ 		i2c0: i2c@f7100000 {
+diff --git a/Platforms/Hisilicon/HiKey/HiKey.dsc b/Platforms/Hisilicon/HiKey/HiKey.dsc
+index 1e18c51..c126786 100644
+--- a/Platforms/Hisilicon/HiKey/HiKey.dsc
++++ b/Platforms/Hisilicon/HiKey/HiKey.dsc
+@@ -313,7 +313,7 @@
+   #
+ 
+   ## PL011 - Serial Terminal
+-  DEFINE SERIAL_BASE = 0xF7113000 # UART3
++  DEFINE SERIAL_BASE = 0xF7112000 # UART2
+   gEfiMdeModulePkgTokenSpaceGuid.PcdSerialRegisterBase|$(SERIAL_BASE)
+   gEfiMdePkgTokenSpaceGuid.PcdUartDefaultBaudRate|115200
+   gEfiMdePkgTokenSpaceGuid.PcdUartDefaultReceiveFifoDepth|0
