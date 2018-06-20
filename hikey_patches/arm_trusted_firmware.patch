@@ -1,0 +1,27 @@
+diff --git a/plat/hisilicon/hikey/include/hikey_def.h b/plat/hisilicon/hikey/include/hikey_def.h
+index deb375da..5a6f9665 100644
+--- a/plat/hisilicon/hikey/include/hikey_def.h
++++ b/plat/hisilicon/hikey/include/hikey_def.h
+@@ -40,6 +40,7 @@
+  * PL011 related constants
+  */
+ #define PL011_UART0_BASE		0xF8015000
++#define PL011_UART2_BASE		0xF7112000
+ #define PL011_UART3_BASE		0xF7113000
+ #define PL011_BAUDRATE			115200
+ #define PL011_UART_CLK_IN_HZ		19200000
+diff --git a/plat/hisilicon/hikey/platform.mk b/plat/hisilicon/hikey/platform.mk
+index 38eb148c..e8fe154c 100644
+--- a/plat/hisilicon/hikey/platform.mk
++++ b/plat/hisilicon/hikey/platform.mk
+@@ -21,8 +21,8 @@ else
+   $(error "Currently unsupported HIKEY_TSP_RAM_LOCATION value")
+ endif
+ 
+-CONSOLE_BASE			:=	PL011_UART3_BASE
+-CRASH_CONSOLE_BASE		:=	PL011_UART3_BASE
++CONSOLE_BASE			:=	PL011_UART2_BASE
++CRASH_CONSOLE_BASE		:=	PL011_UART2_BASE
+ PLAT_PARTITION_MAX_ENTRIES	:=	12
+ PLAT_PL061_MAX_GPIOS		:=	160
+ COLD_BOOT_SINGLE_CPU		:=	1

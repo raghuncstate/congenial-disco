@@ -1,0 +1,32 @@
+1) Download source code for firmware as described at https://github.com/ARM-software/arm-trusted-firmware/blob/master/docs/plat/hikey.rst
+2) Links to download precompiled latest images. Note that there are patch files that can be used to enable TPM support and use of UART2
+   when secure96 board is connected. Uefi does not build dtbs and just uses the file as is. So for any dtb modifications we need to
+   build it in the kernel tree, copy it over to OpenPlatformPkg and then rebuild uefi with the new dtb file.
+	a) http://releases.linaro.org/96boards/hikey/linaro/debian/latest/ - for linux
+	b) http://releases.linaro.org/96boards/hikey/linaro/binaries/latest/ - firmware images
+3) Follow this link to unbrick or flash all images from scratch. mybuild.sh contains easy to use build script.
+	a) https://github.com/96boards/documentation/blob/master/consumer/hikey/installation/board-recovery.md
+	b) This link only flashes l-loader.bin and fip.bin. However,
+           https://github.com/96boards/documentation/blob/master/consumer/hikey/installation/linux-fastboot.md uses android fastboot
+           to flash the rest of the images line the boot efi image, rootfs, nvme etc. Android fastboot does not work if the host
+           machine is a VM over virtualbox.
+        c) To overcome the android fastboot issue, after step 3a) above, the board enters into atf-fastboot, and this can be passed
+           on to the VM over virtualbox successfully. The rest of the images, nvme, kernel, rootfs, boot etc etc can all be flashed
+           using atf-fastboot and there is no need to boot to android fastboot. Basically, all images can be flashed when the device
+           boots into fastboot when loading recovery.bin(which is atf-fastboot bl1.bin).
+4) Follow this link to build the kernel, and potentially modify device tree and use the new dtb file.
+	a) https://github.com/96boards/documentation/blob/master/consumer/hikey/build/linux-kernel.md
+	b) if dpkg does not work to create a package, you can build the kernel seperately and build the modules and directly transfer
+           it over to /boot.
+	c) Instructions to build kernel:
+		1) export ARCH=arm64
+		2) export CROSS_COMPILE=<path to arm64 linaro compiler>
+		3) make defconfig distro.config
+		4) make -j4 Image Image.gz dtbs modules LOCALVERSION=-hikey-linaro (Note: this can be split into as many steps but
+                   need to make sure LOCALVERSION is appeneded alwasy, otherwise you may see issues while loading modules since
+                   the version string may be different)
+		5) make -j4 modules_install LOCALVERSION=-hikey-linaro INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH=<whatever location>
+5) Some other useful links:
+	a) https://discuss.96boards.org/t/booting-a-custon-kernel-on-lemaker-hikey/4554/5
+	b) https://github.com/96boards/documentation/wiki/LatestSnapshots
+	c) https://www.96boards.org/blog/getting-started-with-the-secure96-tpm/

@@ -1,0 +1,137 @@
+diff --git a/arch/arm64/boot/dts/hisilicon/hi6220-hikey.dts b/arch/arm64/boot/dts/hisilicon/hi6220-hikey.dts
+index e94fa1a53192..6dbbb1f25be0 100644
+--- a/arch/arm64/boot/dts/hisilicon/hi6220-hikey.dts
++++ b/arch/arm64/boot/dts/hisilicon/hi6220-hikey.dts
+@@ -23,7 +23,7 @@
+ 	};
+ 
+ 	chosen {
+-		stdout-path = "serial3:115200n8";
++		stdout-path = "serial2:115200n8";
+ 	};
+ 
+ 	/*
+@@ -124,6 +124,11 @@
+ 	soc {
+ 		spi0: spi@f7106000 {
+ 			status = "ok";
++			tpm_tis_spi@0 {
++                            compatible = "tcg,tpm_tis-spi";
++                            spi-max-frequency = <5000000>;
++                            reg = <0>;
++                        };
+ 		};
+ 
+ 		i2c0: i2c@f7100000 {
+diff --git a/drivers/char/tpm/tpm_tis_spi.c b/drivers/char/tpm/tpm_tis_spi.c
+index 424ff2fde1f2..f2f11332e3a2 100644
+--- a/drivers/char/tpm/tpm_tis_spi.c
++++ b/drivers/char/tpm/tpm_tis_spi.c
+@@ -41,7 +41,20 @@
+ #include "tpm.h"
+ #include "tpm_tis_core.h"
+ 
++#define APPLY_SLB9670_MODS 1
++
++#ifdef APPLY_SLB9670_MODS
++/*
++ * For SLB9670, the wait byte handling causes issues while talking to the TPM.
++ * The TPM works fine without the waitbyte handling since it never(almost?)
++ * sends the waitbyte. So we make the iobuffer 68 bytes since we can have
++ * a maximum of 64 bytes of data and 4 bytes for the command.
++ */
++#define MAX_SPI_FRAMESIZE 68
++#define MAX_SPI_DATASIZE 64
++#else
+ #define MAX_SPI_FRAMESIZE 64
++#endif
+ 
+ struct tpm_tis_spi_phy {
+ 	struct tpm_tis_data priv;
+@@ -63,11 +76,14 @@ static int tpm_tis_spi_transfer(struct tpm_tis_data *data, u32 addr, u16 len,
+ 	struct spi_message m;
+ 	struct spi_transfer spi_xfer;
+ 	u8 transfer_len;
+-
+ 	spi_bus_lock(phy->spi_device->master);
+ 
+ 	while (len) {
++#ifdef APPLY_SLB9670_MODS
++		transfer_len = min_t(u16, len, MAX_SPI_DATASIZE);
++#else
+ 		transfer_len = min_t(u16, len, MAX_SPI_FRAMESIZE);
++#endif
+ 
+ 		phy->iobuf[0] = (in ? 0x80 : 0) | (transfer_len - 1);
+ 		phy->iobuf[1] = 0xd4;
+@@ -77,6 +93,7 @@ static int tpm_tis_spi_transfer(struct tpm_tis_data *data, u32 addr, u16 len,
+ 		memset(&spi_xfer, 0, sizeof(spi_xfer));
+ 		spi_xfer.tx_buf = phy->iobuf;
+ 		spi_xfer.rx_buf = phy->iobuf;
++#ifndef APPLY_SLB9670_MODS
+ 		spi_xfer.len = 4;
+ 		spi_xfer.cs_change = 1;
+ 
+@@ -85,7 +102,6 @@ static int tpm_tis_spi_transfer(struct tpm_tis_data *data, u32 addr, u16 len,
+ 		ret = spi_sync_locked(phy->spi_device, &m);
+ 		if (ret < 0)
+ 			goto exit;
+-
+ 		if ((phy->iobuf[3] & 0x01) == 0) {
+ 			// handle SPI wait states
+ 			phy->iobuf[0] = 0;
+@@ -106,16 +122,25 @@ static int tpm_tis_spi_transfer(struct tpm_tis_data *data, u32 addr, u16 len,
+ 				goto exit;
+ 			}
+ 		}
+-
+ 		spi_xfer.cs_change = 0;
+ 		spi_xfer.len = transfer_len;
+ 		spi_xfer.delay_usecs = 5;
++#else
++		spi_xfer.cs_change = 1;
++		spi_xfer.len = transfer_len + 4;
++#endif
+ 
+ 		if (in) {
++#ifndef APPLY_SLB9670_MODS
+ 			spi_xfer.tx_buf = NULL;
++#endif
+ 		} else if (out) {
+ 			spi_xfer.rx_buf = NULL;
++#ifdef APPLY_SLB9670_MODS
++			memcpy(phy->iobuf + 4, out, transfer_len);
++#else
+ 			memcpy(phy->iobuf, out, transfer_len);
++#endif
+ 			out += transfer_len;
+ 		}
+ 
+@@ -126,7 +151,11 @@ static int tpm_tis_spi_transfer(struct tpm_tis_data *data, u32 addr, u16 len,
+ 			goto exit;
+ 
+ 		if (in) {
++#ifdef APPLY_SLB9670_MODS
++			memcpy(in, phy->iobuf + 4, transfer_len);
++#else
+ 			memcpy(in, phy->iobuf, transfer_len);
++#endif
+ 			in += transfer_len;
+ 		}
+ 
+@@ -211,8 +240,15 @@ static int tpm_tis_spi_probe(struct spi_device *dev)
+ 	if (!phy->iobuf)
+ 		return -ENOMEM;
+ 
++#ifdef APPLY_SLB9670_MODS
++	int retval = tpm_tis_core_init(&dev->dev, &phy->priv, -1, &tpm_spi_phy_ops,
++				 NULL);
++        pr_err("\nTPM TIS SPI Driver with SLB9670 mods: %d\n", retval);
++        return retval;
++#else
+ 	return tpm_tis_core_init(&dev->dev, &phy->priv, -1, &tpm_spi_phy_ops,
+ 				 NULL);
++#endif
+ }
+ 
+ static SIMPLE_DEV_PM_OPS(tpm_tis_pm, tpm_pm_suspend, tpm_tis_resume);
